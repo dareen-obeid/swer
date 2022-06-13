@@ -101,8 +101,14 @@ struct cmd *parse_commands(char  *line){
 }
 
 void   execute(struct cmd  *clist){
-    //cd 
+    
     char cwd[1024];
+    //pwd
+    if( strcmp(clist->exe_path,"pwd")==0){
+        printf("%s\n", getcwd(cwd, sizeof(cwd)));
+
+    }
+    //cd 
     if( strcmp(clist->exe_path,"cd")==0){
         if (clist->nargs == 1) {
            chdir(getenv("HOME"));
@@ -131,8 +137,8 @@ exit(1);
 }
 if (!pid) {
 /* child */
-execvp(clist->exe_path,clist->arg);
-fprintf(stderr,"No such command: %s\n",clist->exe_path);
+// execvp(clist->exe_path,clist->arg);
+// fprintf(stderr,"No such command: %s\n",clist->exe_path);
 exit(1); 
 }
 do {
@@ -140,7 +146,7 @@ do {
 
 
 npid = wait(&stat);
-printf("Process %d exited with status %d\n",npid,stat); 
+// printf("Process %d exited with status %d\n",npid,stat); 
 } while (npid != pid);
 switch (clist->terminator) {
 case SEQUENCE:
