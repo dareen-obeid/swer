@@ -107,59 +107,53 @@ void pwd(){
 
 }
 
-void ps(char** args)
-{
-DIR *dir;
-  struct dirent *ent;
-  int i, fd_self, fd;
-  unsigned long time, stime;
-  char flag, *tty;
-  char cmd[256], tty_self[256], path[256], time_s[256];
-  FILE* file;
+void ps(char** args){
+    DIR *dir;
+    struct dirent *ent;
+    int i, fd_self, fd;
+    unsigned long time, stime;
+    char flag, *tty;
+    char cmd[256], tty_self[256], path[256], time_s[256];
+    FILE* file;
 
-  dir = opendir("/proc");
-  fd_self = open("/proc/self/fd/0", O_RDONLY);
-  sprintf(tty_self, "%s", ttyname(fd_self));
-  printf(FORMAT, "PID", "TTY", "TIME", "CMD");
+    dir = opendir("/proc");
+    fd_self = open("/proc/self/fd/0", O_RDONLY);
+    sprintf(tty_self, "%s", ttyname(fd_self));
+    printf(FORMAT, "PID", "TTY", "TIME", "CMD");
 
-  while ((ent = readdir(dir)) != NULL)
-  {
-  flag = 1;
-  for (i = 0; ent->d_name[i]; i++)
-  if (!isdigit(ent->d_name[i]))
-  { 
-   flag = 0;
-   break;
-  }
+    while ((ent = readdir(dir)) != NULL){
+        flag = 1;
+        for (i = 0; ent->d_name[i]; i++)
+        if (!isdigit(ent->d_name[i])){ 
+            flag = 0;
+            break;
+        }
 
-  if (flag)
-  {
-  sprintf(path, "/proc/%s/fd/0", ent->d_name);
-  fd = open(path, O_RDONLY);
-  tty = ttyname(fd);
+        if (flag){
+            sprintf(path, "/proc/%s/fd/0", ent->d_name);
+            fd = open(path, O_RDONLY);
+            tty = ttyname(fd);
 
-  if (tty && strcmp(tty, tty_self) == 0)
-  {
+            if (tty && strcmp(tty, tty_self) == 0){
+                sprintf(path, "/proc/%s/stat", ent->d_name);
+                file = fopen(path, "r");
+                fscanf(file, "%d%s%c%c%c", &i, cmd, &flag, &flag, &flag);
+                cmd[strlen(cmd) - 1] = '\0';
 
-   sprintf(path, "/proc/%s/stat", ent->d_name);
-   file = fopen(path, "r");
-   fscanf(file, "%d%s%c%c%c", &i, cmd, &flag, &flag, &flag);
-   cmd[strlen(cmd) - 1] = '\0';
-
-  for (i = 0; i < 11; i++)
-  fscanf(file, "%lu", &time);
-  fscanf(file, "%lu", &stime);
-  time = (int)((double)(time + stime) / sysconf(_SC_CLK_TCK));
-  sprintf(time_s, "%02lu:%02lu:%02lu",
-  (time / 3600) % 3600, (time / 60) % 60, time % 60);
- 
-  printf(FORMAT, ent->d_name, tty + 5, time_s, cmd + 1);
-  fclose(file);
-  }
- close(fd);
-}
-}
-close(fd_self);
+                for (i = 0; i < 11; i++)
+                fscanf(file, "%lu", &time);
+                fscanf(file, "%lu", &stime);
+                time = (int)((double)(time + stime) / sysconf(_SC_CLK_TCK));
+                sprintf(time_s, "%02lu:%02lu:%02lu",
+                (time / 3600) % 3600, (time / 60) % 60, time % 60);
+                
+                printf(FORMAT, ent->d_name, tty + 5, time_s, cmd + 1);
+                fclose(file);
+            }
+            close(fd);
+        }
+    }
+    close(fd_self);
 }
 
 
@@ -230,6 +224,38 @@ int psA(){
     return 0;
 }
 
+
+void killCommand(char** args)  
+{
+    int pid,sigId=SIGTERM;
+    if(args[1]!=NULL && strcmp(args[1], "-l") == 0 ){
+        printf("1) SIGHUP  9) SIGKILL  15) SIGTERM \n");
+    }
+    else if(args[1]!=NULL && args[2]!=NULL)
+    {
+        if(strcmp(args[1], "SIGHUP") == 0)
+            sigId=1;
+        else if(strcmp(args[1], "SIGKILL") == 0)
+            sigId=9;
+        else if(strcmp(args[1], "SIGTERM") == 0)
+            sigId=15;
+        else
+            sigId=atoi(args[1]);
+            pid=atoi(args[2]);
+        if (kill(pid,sigId)==0)
+            printf("Signal sent!\n");
+
+    }
+    else if(args[1]!=NULL && args[2]==NULL)
+    {
+        pid=atoi(args[1]);
+
+        if (kill(pid,sigId)==0)
+            printf("Killed!\n");
+    }
+}
+
+
 void   execute(struct cmd  *clist){
     
     char cwd[1024];
@@ -255,9 +281,8 @@ void   execute(struct cmd  *clist){
     }
 
 if( strcmp(clist->exe_path,"ps -A")==0){
-
-DIR *directory;
-struct dirent *ent;
+  DIR *directory;
+  struct dirent *ent;
   int i, fd_self, fd;
   unsigned long time, stime;
   char flag, *tty;
@@ -270,38 +295,32 @@ struct dirent *ent;
   sprintf(tty_self, "%s", ttyname(fd_self));
   
 
-  while ((ent = readdir(directory)) != NULL)
-  {
-  flag = 1;
-  for (i = 0; ent->d_name[i]; i++)
-  if (!isdigit(ent->d_name[i]))
-  { 
-   flag = 0;
-   break;
-  }
+  while ((ent = readdir(directory)) != NULL){
+        flag = 1;
+        for (i = 0; ent->d_name[i]; i++)
+        if (!isdigit(ent->d_name[i])){ 
+            flag = 0;
+            break;
+        }
+        if (flag){
+            fd = open(path, O_RDONLY);//remove the if statment to show all the processes in system
+            sprintf(path, "/proc/%s/stat", ent->d_name);
+            file = fopen(path, "r");
+            fscanf(file, "%d%s%c%c%c", &i, cmd, &flag, &flag, &flag);
+            cmd[strlen(cmd) - 1] = '\0';
 
-  if (flag)
-  {
-  
-  fd = open(path, O_RDONLY);//remove the if statment to show all the processes in system
-
-   sprintf(path, "/proc/%s/stat", ent->d_name);
-   file = fopen(path, "r");
-   fscanf(file, "%d%s%c%c%c", &i, cmd, &flag, &flag, &flag);
-   cmd[strlen(cmd) - 1] = '\0';
-
-  for (i = 0; i < 11; i++)
-  fscanf(file, "%lu", &time);
-  fscanf(file, "%lu", &stime);
-  time = (int)((double)(time + stime) / sysconf(_SC_CLK_TCK));
-  sprintf(time_s, "%02lu:%02lu:%02lu",
-  (time / 3600) % 3600, (time / 60) % 60, time % 60);
- 
-  printf(FORMAT, ent->d_name, time_s, cmd + 1);
-  fclose(file);
- close(fd);
-}
-}
+            for (i = 0; i < 11; i++)
+            fscanf(file, "%lu", &time);
+            fscanf(file, "%lu", &stime);
+            time = (int)((double)(time + stime) / sysconf(_SC_CLK_TCK));
+            sprintf(time_s, "%02lu:%02lu:%02lu",
+            (time / 3600) % 3600, (time / 60) % 60, time % 60);
+            
+            printf(FORMAT, ent->d_name, time_s, cmd + 1);
+            fclose(file);
+            close(fd);
+        }
+    }
 close(fd_self);
 }
 
